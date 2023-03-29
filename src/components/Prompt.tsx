@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { Node } from "reactflow";
 
-import { Spinner, Text } from "@chakra-ui/react";
+import { Spinner, Text, Button } from "@chakra-ui/react";
 
 import TextareaAutosize from "react-textarea-autosize";
 
@@ -10,8 +10,9 @@ import { getFluxNodeTypeColor, getFluxNodeTypeDarkColor } from "../utils/color";
 import { FluxNodeData, FluxNodeType, Settings } from "../utils/types";
 import { displayNameFromFluxNodeType } from "../utils/fluxNode";
 import { LabeledSlider } from "./utils/LabeledInputs";
-import { Row, Center } from "../utils/chakra";
+import { Row, Center, Column } from "../utils/chakra";
 import { BigButton } from "./utils/BigButton";
+import { TTSButton } from "./utils/TTSButton";
 
 export function Prompt({
   lineage,
@@ -22,6 +23,8 @@ export function Prompt({
   isGPT4,
   settings,
   setSettings,
+  elevenKey,
+  voiceID,
 }: {
   lineage: Node<FluxNodeData>[];
   onType: (text: string) => void;
@@ -31,6 +34,8 @@ export function Prompt({
   isGPT4: boolean;
   settings: Settings;
   setSettings: (settings: Settings) => void;
+  elevenKey: string | null;
+  voiceID: string | null;
 }) {
   const promptNode = lineage[0];
 
@@ -123,25 +128,64 @@ export function Prompt({
                     :&nbsp;
                   </Text>
                   {isLast ? (
-                    <TextareaAutosize
-                      id="promptBox"
-                      style={{
-                        width: "100%",
-                        backgroundColor: "transparent",
-                        outline: "none",
-                      }}
-                      value={data.text ?? ""}
-                      onChange={(e) => onType(e.target.value)}
-                      placeholder={
-                        data.fluxNodeType === FluxNodeType.User
-                          ? "Write a poem about..."
-                          : data.fluxNodeType === FluxNodeType.System
-                          ? "You are ChatGPT..."
-                          : undefined
-                      }
-                    />
+                    <>
+                      <Column
+                        width={"100%"}
+                        whiteSpace="pre-wrap" // Preserve newlines.
+                        mainAxisAlignment="flex-start"
+                        crossAxisAlignment="flex-start"
+                        borderRadius="6px"
+                      >
+                        <TextareaAutosize
+                          id="promptBox"
+                          style={{
+                            width: "100%",
+                            backgroundColor: "transparent",
+                            outline: "none",
+                          }}
+                          value={data.text ?? ""}
+                          onChange={(e) => onType(e.target.value)}
+                          placeholder={
+                            data.fluxNodeType === FluxNodeType.User
+                              ? "Write a poem about..."
+                              : data.fluxNodeType === FluxNodeType.System
+                              ? "You are ChatGPT..."
+                              : undefined
+                          }
+                        />
+                        {(data.fluxNodeType === FluxNodeType.GPT ||
+                          data.fluxNodeType === FluxNodeType.TweakedGPT) &&
+                          elevenKey && voiceID && (
+                            <TTSButton
+                              text={data.text}
+                              voiceID={voiceID}
+                              apiKey={elevenKey}
+                            />
+                          )}
+                      </Column>
+                    </>
                   ) : (
-                    data.text
+                    <>
+                    
+                    <Column
+                        width={"100%"}
+                        whiteSpace="pre-wrap" // Preserve newlines.
+                        mainAxisAlignment="flex-start"
+                        crossAxisAlignment="flex-start"
+                        borderRadius="6px"
+                      >
+                      {data.text}
+                      {(data.fluxNodeType === FluxNodeType.GPT ||
+                          data.fluxNodeType === FluxNodeType.TweakedGPT) &&
+                          elevenKey && voiceID && (
+                            <TTSButton
+                              text={data.text}
+                              voiceID={voiceID}
+                              apiKey={elevenKey}
+                            />
+                          )}
+                          </Column>
+                    </>
                   )}
                 </>
               )}

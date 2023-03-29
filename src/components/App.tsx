@@ -67,6 +67,7 @@ import {
 } from "../utils/types";
 import {
   API_KEY_LOCAL_STORAGE_KEY,
+  ELEVEN_KEY_LOCAL_STORAGE_KEY,
   DEFAULT_SETTINGS,
   FIT_VIEW_SETTINGS,
   HOTKEY_CONFIG,
@@ -76,6 +77,7 @@ import {
   OVERLAP_RANDOMNESS_MAX,
   REACT_FLOW_LOCAL_STORAGE_KEY,
   UNDEFINED_RESPONSE_STRING,
+  VOICE_ID_LOCAL_STORAGE_KEY,
 } from "../utils/constants";
 import { mod } from "../utils/mod";
 import { BigButton } from "./utils/BigButton";
@@ -744,6 +746,8 @@ function App() {
   //////////////////////////////////////////////////////////////*/
 
   const [apiKey, setApiKey] = useLocalStorage<string>(API_KEY_LOCAL_STORAGE_KEY);
+  const [elevenKey, setElevenKey] = useLocalStorage<string>(ELEVEN_KEY_LOCAL_STORAGE_KEY);
+  const [voiceID, setVoiceID] = useLocalStorage<string>(VOICE_ID_LOCAL_STORAGE_KEY);
 
   const isAnythingLoading = isSavingReactFlow || isSavingSettings;
 
@@ -823,7 +827,11 @@ function App() {
         isOpen={isSettingsModalOpen}
         onClose={onCloseSettingsModal}
         apiKey={apiKey}
+        elevenKey={elevenKey}
+        voiceID={voiceID}
         setApiKey={setApiKey}
+        setElevenKey={setElevenKey}
+        setVoiceID={setVoiceID}
       />
       <Column
         mainAxisAlignment="center"
@@ -941,6 +949,8 @@ function App() {
                 settings={settings}
                 setSettings={setSettings}
                 isGPT4={isGPT4}
+                elevenKey={elevenKey}
+                voiceID={voiceID}
                 selectNode={selectNode}
                 newConnectedToSelectedNode={newConnectedToSelectedNode}
                 lineage={selectedNodeLineage}
