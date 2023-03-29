@@ -37,6 +37,8 @@ import { Prompt } from "./Prompt";
 import { APIKeyModal } from "./modals/APIKeyModal";
 import { SettingsModal } from "./modals/SettingsModal";
 
+import { MIXPANEL_TOKEN } from "../main";
+
 import {
   getFluxNode,
   getFluxNodeGPTChildren,
@@ -44,6 +46,7 @@ import {
   newFluxNode,
   appendTextToFluxNodeAsGPT,
   getFluxNodeLineage,
+  isFluxNodeInLineage,
   addFluxNode,
   modifyFluxNode,
   getFluxNodeChildren,
@@ -160,6 +163,16 @@ function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const onConnect = (connection: Edge<any> | Connection) => {
+    // Check the lineage of the source node to make
+    // sure we aren't creating a recursive connection.
+    if (
+      isFluxNodeInLineage(nodes, edges, {
+        nodeToCheck: connection.target!,
+        nodeToGetLineageOf: connection.source!,
+      })
+    )
+      return;
+
     takeSnapshot();
     setEdges((eds) => addEdge({ ...connection }, eds));
   };
@@ -238,7 +251,7 @@ function App() {
   const submitPrompt = async () => {
     takeSnapshot();
 
-    mixpanel.track("Submitted Prompt");
+    if (MIXPANEL_TOKEN) mixpanel.track("Submitted Prompt");
 
     const responses = settings.n;
     const temp = settings.temp;
@@ -872,7 +885,7 @@ function App() {
                   moveToRightSibling={moveToRightSibling}
                   autoZoom={autoZoom}
                   onOpenSettingsModal={() => {
-                    mixpanel.track("Opened Settings Modal");
+                    if (MIXPANEL_TOKEN) mixpanel.track("Opened Settings Modal");
                     onOpenSettingsModal();
                   }}
                 />
