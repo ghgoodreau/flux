@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { Button, Flex} from "@chakra-ui/react";
+import { Button, Flex } from "@chakra-ui/react";
 import { useLocalStorage } from "../../utils/lstore";
 import {
   ELEVEN_TRANSCRIPTION_HISTORY,
@@ -8,7 +8,7 @@ import {
 
 interface TTSButtonProps {
   text: string;
-  voiceID: string;
+  voiceID: string | null;
   apiKey: string;
 }
 
@@ -90,9 +90,9 @@ export const TTSButton: React.FC<TTSButtonProps> = ({ text, voiceID, apiKey }) =
   const buttonText = findHistoryItem() ? 'Fetch Audio' : 'Transcribe Audio';
 
   return (
-    <>
+    <Flex w="100%" justifyContent="center" mt={3}>
       {!audioSrc && (
-        <Button onClick={handleButtonClick} disabled={isLoading}>
+        <Button onClick={handleButtonClick} disabled={isLoading} w="100%">
           {!isLoading ? buttonText : renderLoadingSpinner()}
         </Button>
       )}
@@ -101,6 +101,6 @@ export const TTSButton: React.FC<TTSButtonProps> = ({ text, voiceID, apiKey }) =
           Your browser does not support the audio element.
         </audio>
       )}
-    </>
+    </Flex>
   );
 };

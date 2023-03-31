@@ -9,6 +9,7 @@ import { LabeledSlider } from "./utils/LabeledInputs";
 import { Row, Center, Column } from "../utils/chakra";
 import { BigButton } from "./utils/BigButton";
 import { TextAndCodeBlock } from "./utils/TextAndCodeBlock";
+import { TTSButton } from "./utils/TTSButton";
 
 export function Prompt({
   lineage,
@@ -20,7 +21,7 @@ export function Prompt({
   settings,
   setSettings,
   elevenKey,
-  voiceID
+  voiceID,
 }: {
   lineage: Node<FluxNodeData>[];
   onType: (text: string) => void;
@@ -161,14 +162,11 @@ export function Prompt({
                             <TextAndCodeBlock text={data.text} />
                           )}
                           {!(data.fluxNodeType === FluxNodeType.User) && (
-                            <Button
-                              onClick={() => setIsEditing(!isEditing)}
-                              mt={5}
-                              width="100%"
-                              alignSelf="center"
-                            >
-                              {isEditing ? "Done Editing" : "Edit"}
-                            </Button>
+                          <TTSButton
+                            voiceID={voiceID}
+                            apiKey={elevenKey || ""}
+                            text={data.text}
+                          />
                           )}
                         </>
                       </Column>
