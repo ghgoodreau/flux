@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Node } from "reactflow";
-import { Spinner, Text, Button } from "@chakra-ui/react";
+import { Spinner, Text } from "@chakra-ui/react";
 import TextareaAutosize from "react-textarea-autosize";
 import { getFluxNodeTypeColor, getFluxNodeTypeDarkColor } from "../utils/color";
 import { FluxNodeData, FluxNodeType, Settings } from "../utils/types";
@@ -50,7 +50,12 @@ export function Prompt({
                               STATE
   //////////////////////////////////////////////////////////////*/
 
-  const [isEditing, setIsEditing] = useState(false);
+
+  const [isEditing, setIsEditing] = useState(
+    promptNodeType === FluxNodeType.User || promptNodeType === FluxNodeType.System
+  );
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+
 
   /*//////////////////////////////////////////////////////////////
                               EFFECTS
@@ -65,17 +70,30 @@ export function Prompt({
       .getElementById("promptButtons")
       ?.scrollIntoView(/* { behavior: "smooth" } */);
 
-    const promptBox = window.document.getElementById(
-      "promptBox"
-    ) as HTMLTextAreaElement | null;
-
-    // Focus the text box and move the cursor to chosen offset (defaults to end).
-    promptBox?.setSelectionRange(textOffsetRef.current, textOffsetRef.current);
-    promptBox?.focus();
-
-    // Default to moving to the start of the text.
-    textOffsetRef.current = -1;
+    // If the user clicked on the node, we assume they want to edit it.
+    // Otherwise, we only put them in edit mode if its a user or system node.
+    setIsEditing(
+      textOffsetRef.current !== -1 ||
+        promptNodeType === FluxNodeType.User ||
+        promptNodeType === FluxNodeType.System
+    );
   }, [promptNode.id]);
+
+  // Focus the textbox when the user changes into edit mode.
+  useEffect(() => {
+    if (isEditing) {
+      const promptBox = window.document.getElementById(
+        "promptBox"
+      ) as HTMLTextAreaElement | null;
+
+      // Focus the text box and move the cursor to chosen offset (defaults to end).
+      promptBox?.setSelectionRange(textOffsetRef.current, textOffsetRef.current);
+      promptBox?.focus();
+
+      // Default to moving to the end of the text.
+      textOffsetRef.current = -1;
+    }
+  }, [promptNode.id, isEditing]);
 
   /*//////////////////////////////////////////////////////////////
                               APP
@@ -95,30 +113,37 @@ export function Prompt({
             <Row
               mb={2}
               p={3}
-              whiteSpace="pre-wrap" // Preserve newlines.
               mainAxisAlignment="flex-start"
               crossAxisAlignment="flex-start"
               borderRadius="6px"
               borderLeftWidth={isLast ? "4px" : "0px"}
+              _hover={{
+                boxShadow: isLast ? "none" : "0 0 0 0.5px #1a192b",
+              }}
               borderColor={getFluxNodeTypeDarkColor(data.fluxNodeType)}
+              position="relative"
+              onMouseEnter={() => setHoveredNodeId(node.id)}
+              onMouseLeave={() => setHoveredNodeId(null)}
               bg={getFluxNodeTypeColor(data.fluxNodeType)}
               key={node.id}
-              {...(!isLast
-                ? {
-                    onClick: () => {
+              onClick={
+                isLast
+                  ? undefined
+                  : () => {
                       const selection = window.getSelection();
 
                       // We don't want to trigger the selection
                       // if they're just selecting/copying text.
                       if (selection?.isCollapsed) {
+                        // TODO: Note this is basically broken because of codeblocks.
                         textOffsetRef.current = selection.anchorOffset ?? 0;
 
                         selectNode(node.id);
+                        setIsEditing(true);
                       }
-                    },
-                    cursor: "pointer",
-                  }
-                : {})}
+                    }
+              }
+              cursor={isLast && isEditing ? "text" : "pointer"}
             >
               {data.generating && data.text === "" ? (
                 <Center expand>
@@ -126,64 +151,60 @@ export function Prompt({
                 </Center>
               ) : (
                 <>
+                  <Button
+                    display={
+                      hoveredNodeId === promptNode.id && promptNode.id === node.id
+                        ? "block"
+                        : "none"
+                    }
+                    onClick={() => setIsEditing(!isEditing)}
+                    position="absolute"
+                    top={1}
+                    right={1}
+                    zIndex={10}
+                    variant="outline"
+                    border="0px"
+                    _hover={{ background: "none" }}
+                    p={1}
+                  >
+                    {isEditing ? <ViewIcon boxSize={4} /> : <EditIcon boxSize={4} />}
+                  </Button>
                   <Text fontWeight="bold" width="auto" whiteSpace="nowrap">
                     {displayNameFromFluxNodeType(data.fluxNodeType)}
                     :&nbsp;
                   </Text>
-                  {isLast ? (
-                    <>
-                      <Column
-                        width={"100%"}
-                        whiteSpace="pre-wrap"
-                        mainAxisAlignment="flex-start"
-                        crossAxisAlignment="flex-start"
-                        borderRadius="6px"
-                      >
-                        <>
-                          {isEditing || data.fluxNodeType === FluxNodeType.User ? (
-                            <TextareaAutosize
-                              id="promptBox"
-                              style={{
-                                width: "100%",
-                                backgroundColor: "transparent",
-                                outline: "none",
-                              }}
-                              value={data.text ?? ""}
-                              onChange={(e) => onType(e.target.value)}
-                              placeholder={
-                                data.fluxNodeType === FluxNodeType.User
-                                  ? "Write a poem about..."
-                                  : data.fluxNodeType === FluxNodeType.System
-                                  ? "You are ChatGPT..."
-                                  : undefined
-                              }
-                            />
-                          ) : (
-                            <TextAndCodeBlock text={data.text} />
-                          )}
-                          {!(data.fluxNodeType === FluxNodeType.User) && (
-                          <TTSButton
-                            voiceID={voiceID}
-                            apiKey={elevenKey || ""}
-                            text={data.text}
-                          />
-                          )}
-                        </>
-                      </Column>
-                    </>
-                  ) : (
-                    <>
-                      <Column
-                        width={"100%"}
-                        whiteSpace="pre-wrap"
-                        mainAxisAlignment="flex-start"
-                        crossAxisAlignment="flex-start"
-                        borderRadius="6px"
-                      >
-                        <TextAndCodeBlock text={data.text} />
-                      </Column>
-                    </>
-                  )}
+                  <Column
+                    width="100%"
+                    marginRight="30px"
+                    whiteSpace="pre-wrap" // Preserve newlines.
+                    mainAxisAlignment="flex-start"
+                    crossAxisAlignment="flex-start"
+                    borderRadius="6px"
+                    wordBreak="break-word"
+                    onClick={isEditing ? undefined : () => setIsEditing(true)}
+                  >
+                    {isLast && isEditing ? (
+                      <TextareaAutosize
+                        id="promptBox"
+                        style={{
+                          width: "100%",
+                          backgroundColor: "transparent",
+                          outline: "none",
+                        }}
+                        value={data.text ?? ""}
+                        onChange={(e) => onType(e.target.value)}
+                        placeholder={
+                          data.fluxNodeType === FluxNodeType.User
+                            ? "Write a poem about..."
+                            : data.fluxNodeType === FluxNodeType.System
+                            ? "You are ChatGPT..."
+                            : undefined
+                        }
+                      />
+                    ) : (
+                      <TextAndCodeBlock text={data.text} />
+                    )}
+                  </Column>
                 </>
               )}
             </Row>

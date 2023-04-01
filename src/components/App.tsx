@@ -12,7 +12,6 @@ import ReactFlow, {
   ReactFlowInstance,
   ReactFlowJsonObject,
   useReactFlow,
-  Controls,
 } from "reactflow";
 
 import "reactflow/dist/style.css";
@@ -30,7 +29,7 @@ import { useBeforeunload } from "react-beforeunload";
 import { CheckCircleIcon } from "@chakra-ui/icons";
 import { Box, useDisclosure, Spinner, useToast } from "@chakra-ui/react";
 
-import { CreateCompletionResponseChoicesInner, OpenAI } from "openai-streams-flux";
+import { CreateCompletionResponseChoicesInner, OpenAI } from "openai-streams";
 
 import { Prompt } from "./Prompt";
 
@@ -76,6 +75,7 @@ import {
   NEW_TREE_CONTENT_QUERY_PARAM,
   OVERLAP_RANDOMNESS_MAX,
   REACT_FLOW_LOCAL_STORAGE_KEY,
+  TOAST_CONFIG,
   UNDEFINED_RESPONSE_STRING,
   VOICE_ID_LOCAL_STORAGE_KEY,
 } from "../utils/constants";
@@ -89,6 +89,7 @@ import { NavigationBar } from "./utils/NavigationBar";
 import { useDebouncedEffect } from "../utils/debounce";
 import { useDebouncedWindowResize } from "../utils/resize";
 import { getQueryParam, resetURL } from "../utils/qparams";
+import { copySnippetToClipboard } from "../utils/clipboard";
 import { messagesFromLineage, promptFromLineage } from "../utils/prompt";
 import { newFluxEdge, modifyFluxEdge, addFluxEdge } from "../utils/fluxEdge";
 import { getFluxNodeTypeColor, getFluxNodeTypeDarkColor } from "../utils/color";
@@ -408,9 +409,7 @@ function App() {
       toast({
         title: err.toString(),
         status: "error",
-        isClosable: true,
-        variant: "left-accent",
-        position: "bottom-left",
+        ...TOAST_CONFIG,
       })
     );
 
@@ -760,10 +759,22 @@ function App() {
                         COPY MESSAGES LOGIC
   //////////////////////////////////////////////////////////////*/
 
-  const copyMessagesToClipboard = () => {
+  const copyMessagesToClipboard = async () => {
     const messages = promptFromLineage(selectedNodeLineage, settings);
 
-    if (messages) navigator.clipboard.writeText(messages);
+    if (await copySnippetToClipboard(messages)) {
+      toast({
+        title: "Copied messages to clipboard!",
+        status: "success",
+        ...TOAST_CONFIG,
+      });
+    } else {
+      toast({
+        title: "Failed to copy messages to clipboard!",
+        status: "error",
+        ...TOAST_CONFIG,
+      });
+    }
   };
 
   /*//////////////////////////////////////////////////////////////
@@ -810,7 +821,6 @@ function App() {
   );
   useHotkeys("meta+k", completeNextWords, HOTKEY_CONFIG);
   useHotkeys("meta+backspace", deleteSelectedNodes, HOTKEY_CONFIG);
-
   useHotkeys("ctrl+c", copyMessagesToClipboard, HOTKEY_CONFIG);
 
   /*//////////////////////////////////////////////////////////////
@@ -842,7 +852,7 @@ function App() {
         <Row mainAxisAlignment="flex-start" crossAxisAlignment="stretch" expand>
           <Resizable
             maxWidth="75%"
-            minWidth="20%"
+            minWidth="15%"
             defaultSize={{
               width: "50%",
               height: "auto",
@@ -923,7 +933,7 @@ function App() {
                 // onNodeDragStop={autoZoomIfNecessary}
                 onSelectionDragStop={autoZoomIfNecessary}
                 selectionKeyCode={null}
-                multiSelectionKeyCode={null}
+                multiSelectionKeyCode="Shift"
                 panActivationKeyCode={null}
                 deleteKeyCode={null}
                 panOnDrag={false}
@@ -938,7 +948,6 @@ function App() {
                 }}
               >
                 <Background />
-                <Controls position="top-right" showInteractive={false} />
               </ReactFlow>
             </Column>
           </Resizable>

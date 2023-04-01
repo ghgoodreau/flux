@@ -194,7 +194,7 @@ export function NavigationBar({
 
             <MenuGroup title="Copy">
               <MenuItem command="Ctrl+C" onClick={copyMessagesToClipboard}>
-                Copy tree to clipboard
+                Copy messages to clipboard
               </MenuItem>
             </MenuGroup>
           </MenuList>
