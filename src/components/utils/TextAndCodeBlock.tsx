@@ -1,27 +1,26 @@
-import React, { useState, useEffect } from "react";
-import { Button } from "@chakra-ui/react";
+import { MouseEvent, useState, useEffect, memo } from "react";
+
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { coy } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-interface CodeBlockProps {
-  text: string;
-}
+import { Button, Box, Text } from "@chakra-ui/react";
 
-const getNextCodeBlockMatch = (text: string) => {
-  const codeBlockRegex = /\s*(```(?:[a-zA-Z0-9-]*\n|\n?)([\s\S]+?)\n```)\s*/;
-  return codeBlockRegex.exec(text);
-};
+import { CopyIcon } from "@chakra-ui/icons";
+
+import {
+  CODE_BLOCK_DETECT_REGEX,
+  CODE_BLOCK_LANGUAGE_DETECT_REGEX,
+} from "../../utils/constants";
+import { Row } from "../../utils/chakra";
+import { copySnippetToClipboard } from "../../utils/clipboard";
 
 const CopyCodeButton = ({ code }: { code: string }) => {
   const [copied, setCopied] = useState(false);
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-    } catch (err) {
-      console.error("Failed to copy to clipboard", err);
-    }
+  const handleCopyButtonClick = async (e: MouseEvent) => {
+    e.stopPropagation(); // Prevent this from triggering edit mode in the parent.
+
+    if (await copySnippetToClipboard(code)) setCopied(true);
   };
 
   useEffect(() => {
@@ -32,45 +31,81 @@ const CopyCodeButton = ({ code }: { code: string }) => {
   }, [copied]);
 
   return (
-    <Button onClick={copyToClipboard} mb={5} size="sm">
-      {copied ? "Copied!" : "Copy Code"}
+    <Button
+      onClick={handleCopyButtonClick}
+      size="xs"
+      variant="ghost"
+      px="5px"
+      _hover={{ background: "#EEEEEE" }}
+    >
+      <CopyIcon boxSize={4} mr={1} /> {copied ? "Copied!" : "Copy Code"}
     </Button>
   );
 };
 
-export const TextAndCodeBlock: React.FC<CodeBlockProps> = ({ text }) => {
-  const match = getNextCodeBlockMatch(text);
-
-  if (!match) {
-    return <>{text}</>;
-  }
-
-  const before = text.substring(0, match.index);
-
-  const languageLine = /^```[a-zA-Z0-9-]*$/m.exec(match[1]);
-  const language = languageLine ? languageLine[0].substring(3) : "plaintext";
-  const code = match[2].trim();
-
-  const after = text.substring(match.index + match[0].length);
-
+const TitleBar = ({ language, code }: { language?: string; code: string }) => {
   return (
-    <>
-      {before}
-      <SyntaxHighlighter
-        language={language}
-        wrapLongLines={true}
-        style={coy}
-        codeTagProps={{
-          style: { wordBreak: "break-word" },
-        }}
-        customStyle={{
-          padding: "10px"
-        }}
-      >
-        {code}
-      </SyntaxHighlighter>
+    <Row
+      mainAxisAlignment="flex-start"
+      crossAxisAlignment="stretch"
+      expand
+      justifyContent="space-between"
+      alignItems="center"
+      px="10px"
+      py="5px"
+      backgroundColor="#f5f5f5"
+      borderBottom="1px solid #eee"
+      borderRadius="6px"
+    >
+      <Box>{language || "plaintext"}</Box>
       <CopyCodeButton code={code} />
-      <TextAndCodeBlock text={after} />
-      </>
+    </Row>
   );
 };
+
+export const TextAndCodeBlock = memo(({ text }: { text: string }) => {
+  let remainingText = text;
+
+  const elements: React.ReactNode[] = [];
+
+  while (remainingText.length > 0) {
+    const match = CODE_BLOCK_DETECT_REGEX.exec(remainingText);
+
+    if (!match) {
+      elements.push(<Text key={elements.length}>{remainingText}</Text>);
+      break;
+    }
+
+    const before = remainingText.substring(0, match.index);
+    const language =
+      CODE_BLOCK_LANGUAGE_DETECT_REGEX.exec(match[1])?.[0]?.substring(3) || "plaintext";
+    const code = match[2].trim();
+    const after = remainingText.substring(match.index + match[0].length);
+
+    if (before.length > 0)
+      elements.push(
+        <Text key={elements.length} mb={4}>
+          {before}
+        </Text>
+      );
+
+    elements.push(
+      <Box key={elements.length} borderRadius="4px" overflow="hidden">
+        <TitleBar language={language} code={code} />
+        <SyntaxHighlighter
+          language={language}
+          wrapLongLines
+          style={coy}
+          codeTagProps={{ style: { wordBreak: "break-word" } }}
+          customStyle={{ padding: "10px", margin: "0px", borderRadius: "0 0 4px 4px" }}
+        >
+          {code}
+        </SyntaxHighlighter>
+      </Box>
+    );
+
+    remainingText = after;
+  }
+
+  return <Box width="100%">{elements}</Box>;
+});
