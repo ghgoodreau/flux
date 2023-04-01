@@ -1,20 +1,16 @@
-import { Node } from "reactflow";
-
 import { useState, useEffect, useRef } from "react";
-
+import { Node } from "reactflow";
 import { Spinner, Text, Button } from "@chakra-ui/react";
-
 import { EditIcon, ViewIcon } from "@chakra-ui/icons";
-
 import TextareaAutosize from "react-textarea-autosize";
-
 import { getFluxNodeTypeColor, getFluxNodeTypeDarkColor } from "../utils/color";
-import { TextAndCodeBlock } from "./utils/TextAndCodeBlock";
 import { FluxNodeData, FluxNodeType, Settings } from "../utils/types";
 import { displayNameFromFluxNodeType } from "../utils/fluxNode";
 import { LabeledSlider } from "./utils/LabeledInputs";
 import { Row, Center, Column } from "../utils/chakra";
 import { BigButton } from "./utils/BigButton";
+import { TextAndCodeBlock } from "./utils/TextAndCodeBlock";
+import { TTSButton } from "./utils/TTSButton";
 
 export function Prompt({
   lineage,
@@ -25,6 +21,8 @@ export function Prompt({
   isGPT4,
   settings,
   setSettings,
+  elevenKey,
+  voiceID,
 }: {
   lineage: Node<FluxNodeData>[];
   onType: (text: string) => void;
@@ -33,6 +31,8 @@ export function Prompt({
   newConnectedToSelectedNode: (type: FluxNodeType) => void;
   isGPT4: boolean;
   settings: Settings;
+  elevenKey: string | null;
+  voiceID: string | null;
   setSettings: (settings: Settings) => void;
 }) {
   const promptNode = lineage[0];
@@ -203,6 +203,14 @@ export function Prompt({
                     ) : (
                       <TextAndCodeBlock text={data.text} />
                     )}
+                    {data.fluxNodeType !== FluxNodeType.User &&
+                      data.fluxNodeType !== FluxNodeType.System && (
+                        <TTSButton
+                          text={data.text}
+                          voiceID={voiceID}
+                          apiKey={elevenKey || ""}
+                        />
+                      )}
                   </Column>
                 </>
               )}
