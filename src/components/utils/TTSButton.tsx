@@ -90,7 +90,7 @@ export const TTSButton: React.FC<TTSButtonProps> = ({ text, voiceID, apiKey }) =
 
   return (
     <Flex w="100%" justifyContent="center" mt={3}>
-      {!audioSrc && (
+      {!audioSrc && voiceID && apiKey && text && (
         <Button onClick={handleButtonClick} disabled={isLoading} w="100%">
           {!isLoading ? buttonText : renderLoadingSpinner()}
         </Button>
