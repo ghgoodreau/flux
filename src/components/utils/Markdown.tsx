@@ -103,9 +103,9 @@ export const Markdown = memo(function Markdown({ text }: { text: string }) {
           li({ children }) {
             return (
               <ListItem as="li" lineHeight={1.2} mb="0px" ml="20px">
-                <Flex>
+                {/* <Flex> */}
                   {children}
-                </Flex>
+                {/* </Flex> */}
               </ListItem>
             );
           },
