@@ -11,7 +11,6 @@ import {
   List,
   ListItem,
   Stack,
-  Flex,
 } from "@chakra-ui/react";
 import { CopyIcon } from "@chakra-ui/icons";
 import { Row, Column } from "../../utils/chakra";
@@ -101,8 +100,6 @@ export const Markdown = memo(function Markdown({ text }: { text: string }) {
             );
           },
           li({ children }) {
-            // i'm not a huge fan of this but it works. seems there's a leading newline in the children sometimes?
-            // not a good final solution yet because it strips extra newlines that might still want to be included.
             let isLeadingNewline = true;
             const filteredChildren = children.filter((child: ReactNode) => {
               const isBreakingNewline =
