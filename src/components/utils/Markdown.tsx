@@ -100,18 +100,18 @@ export const Markdown = memo(function Markdown({ text }: { text: string }) {
             );
           },
           li({ children }) {
-            let isLeadingNewline = true;
-            const filteredChildren = children.filter((child: ReactNode) => {
-              const isBreakingNewline =
-                isLeadingNewline && typeof child === "string" && child.trim() === "";
+            // let isLeadingNewline = true;
+            // const filteredChildren = children.filter((child: ReactNode) => {
+            //   const isBreakingNewline =
+            //     isLeadingNewline && typeof child === "string" && child.trim() === "";
 
-              isLeadingNewline = false;
+            //   isLeadingNewline = false;
 
-              return !isBreakingNewline;
-            });
+            //   return !isBreakingNewline;
+            // });
             return (
               <ListItem as="li" mb="0px" ml="20px">
-                {filteredChildren}
+                {children}
               </ListItem>
             );
           },
