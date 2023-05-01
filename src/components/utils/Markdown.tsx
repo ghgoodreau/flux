@@ -2,16 +2,7 @@ import React, { useState, useEffect, memo, ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import "highlight.js/styles/atom-one-light.css";
 import rehypeHighlight from "rehype-highlight";
-import {
-  Button,
-  Box,
-  Code,
-  Text,
-  useTheme,
-  List,
-  ListItem,
-  Stack,
-} from "@chakra-ui/react";
+import { Button, Box, Code, Text, useTheme, List, ListItem } from "@chakra-ui/react";
 import { CopyIcon } from "@chakra-ui/icons";
 import { Row, Column } from "../../utils/chakra";
 import { copySnippetToClipboard } from "../../utils/clipboard";
@@ -79,7 +70,7 @@ const CopyCodeButton = ({ code }: { code: ReactNode[] }) => {
 
 export const Markdown = memo(function Markdown({ text }: { text: string }) {
   return (
-    <Stack className="markdown-wrapper" width="100%" wordBreak="break-word">
+    <Box className="markdown-wrapper" width="100%" wordBreak="break-word">
       <ReactMarkdown
         rehypePlugins={[
           [rehypeHighlight, { ignoreMissing: true, languages: { solidity, yul } }],
@@ -100,31 +91,22 @@ export const Markdown = memo(function Markdown({ text }: { text: string }) {
             );
           },
           li({ children }) {
-            // let isLeadingNewline = true;
-            // const filteredChildren = children.filter((child: ReactNode) => {
-            //   const isBreakingNewline =
-            //     isLeadingNewline && typeof child === "string" && child.trim() === "";
-
-            //   isLeadingNewline = false;
-
-            //   return !isBreakingNewline;
-            // });
             return (
               <ListItem as="li" mb="0px" ml="20px">
-                {children}
+                {children?.filter(
+                  (child: ReactNode) =>
+                    !(typeof child === "string" && child.trim() === "")
+                )}
               </ListItem>
             );
           },
           blockquote({ children }) {
             return (
-              <Box
-                borderLeft="10px solid #eee"
-                backgroundColor="#f5f5f5"
-                borderRadius="0.25rem"
-                padding="0.5rem"
-                margin="1rem 0"
-              >
-                {children}
+              <Box borderLeft="2px solid currentcolor" pl="20px">
+                {children?.filter(
+                  (child: ReactNode) =>
+                    !(typeof child === "string" && child.trim() === "")
+                )}
               </Box>
             );
           },
@@ -165,7 +147,7 @@ export const Markdown = memo(function Markdown({ text }: { text: string }) {
       >
         {text}
       </ReactMarkdown>
-    </Stack>
+    </Box>
   );
 });
 
@@ -188,7 +170,7 @@ const stringifyChildren = (children: ReactNode[]): string => {
           );
         }
 
-        // ignores non-text ReactNodes, fixing [object Object] error.
+        // Ignore non-text ReactNodes, fixing [object Object] error.
         if (typeof currentNode === "object") {
           return concatenatedText;
         }
