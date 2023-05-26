@@ -1153,6 +1153,7 @@ function App() {
                   );
                 }}
                 submitPrompt={() => submitPrompt(false)}
+                apiKey={apiKey}
               />
             ) : (
               <Column
