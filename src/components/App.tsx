@@ -29,7 +29,6 @@ import {
   getFluxNodeGPTChildren,
   displayNameFromFluxNodeType,
   newFluxNode,
-  appendTextToFluxNodeAsGPT,
   getFluxNodeLineage,
   addFluxNode,
   modifyFluxNodeText,
@@ -43,11 +42,12 @@ import {
   addUserNodeLinkedToASystemNode,
   getConnectionAllowed,
   setFluxNodeStreamId,
+  modifyFluxNodeTextAsGPT,
 } from "../utils/fluxNode";
 import { useLocalStorage } from "../utils/lstore";
 import { mod } from "../utils/mod";
 import { generateNodeId, generateStreamId } from "../utils/nodeId";
-import { messagesFromLineage, promptFromLineage } from "../utils/prompt";
+import { promptFromLineage } from "../utils/prompt";
 import { getQueryParam, resetURL } from "../utils/qparams";
 import { useDebouncedWindowResize } from "../utils/resize";
 import {
@@ -55,7 +55,6 @@ import {
   FluxNodeType,
   HistoryItem,
   Settings,
-  CreateChatCompletionStreamResponseChoicesInner,
   ReactFlowNodeTypes,
 } from "../utils/types";
 import { Prompt } from "./Prompt";
@@ -87,6 +86,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { yieldStream } from "yield-stream";
+import { HUMAN_PROMPT, Client } from "@anthropic-ai/sdk";
 
 function App() {
   const toast = useToast();
@@ -363,90 +363,81 @@ function App() {
     if (firstCompletionId === undefined) throw new Error("No first completion id!");
 
     (async () => {
-      const stream = await OpenAI(
-        "chat",
-        {
-          model,
-          n: responses,
-          temperature: temp,
-          messages: messagesFromLineage(parentNodeLineage, settings),
-        },
-        { apiKey: apiKey!, mode: "raw" }
-      );
+      const client = new Client(apiKey!, {
+        apiUrl: "http://localhost:8010/proxy",
+      });
 
-      const DECODER = new TextDecoder();
+      let promises = [];
 
       const abortController = new AbortController();
 
-      for await (const chunk of yieldStream(stream, abortController)) {
-        if (abortController.signal.aborted) break;
+      for (let index = 0; index < responses; index++) {
+        promises.push(
+          client.completeStream(
+            {
+              prompt: promptFromLineage(parentNodeLineage, settings, true, true),
+              stop_sequences: [HUMAN_PROMPT],
+              max_tokens_to_sample: 1000,
+              model,
+              temperature: temp > 1 ? 1 : temp, // if the setting is cached above 1, Anthropic API will error out, so we force it to 1.
+            },
 
-        try {
-          const decoded = JSON.parse(DECODER.decode(chunk));
+            {
+              signal: abortController.signal,
 
-          if (decoded.choices === undefined)
-            throw new Error(
-              "No choices in response. Decoded response: " + JSON.stringify(decoded)
-            );
+              onUpdate: (completion) => {
+                const correspondingNodeId =
+                  // If we re-used a node we have to pull it from children array.
+                  overrideExistingIfPossible && index < currentNodeChildren.length
+                    ? currentNodeChildren[index].id
+                    : newNodes[newNodes.length - responses + index].id;
 
-          const choice: CreateChatCompletionStreamResponseChoicesInner =
-            decoded.choices[0];
+                setNodes((newerNodes) => {
+                  try {
+                    return modifyFluxNodeTextAsGPT(newerNodes, {
+                      id: correspondingNodeId,
+                      text: completion.completion ?? UNDEFINED_RESPONSE_STRING,
+                      streamId, // This will cause a throw if the streamId has changed.
+                    });
+                  } catch (e: any) {
+                    // If the stream id does not match,
+                    // it is stale and we should abort.
+                    abortController.abort(e.message);
 
-          if (choice.index === undefined)
-            throw new Error(
-              "No index in choice. Decoded choice: " + JSON.stringify(choice)
-            );
-
-          const correspondingNodeId =
-            // If we re-used a node we have to pull it from children array.
-            overrideExistingIfPossible && choice.index < currentNodeChildren.length
-              ? currentNodeChildren[choice.index].id
-              : newNodes[newNodes.length - responses + choice.index].id;
-
-          // The ChatGPT API will start by returning a
-          // choice with only a role delta and no content.
-          if (choice.delta?.content) {
-            setNodes((newerNodes) => {
-              try {
-                return appendTextToFluxNodeAsGPT(newerNodes, {
-                  id: correspondingNodeId,
-                  text: choice.delta?.content ?? UNDEFINED_RESPONSE_STRING,
-                  streamId, // This will cause a throw if the streamId has changed.
+                    return newerNodes;
+                  }
                 });
-              } catch (e: any) {
-                // If the stream id does not match,
-                // it is stale and we should abort.
-                abortController.abort(e.message);
 
-                return newerNodes;
-              }
-            });
-          }
+                // We cannot return within the loop, and we do
+                // not want to execute the code below, so we return.
+                if (abortController.signal.aborted) return;
 
-          // We cannot return within the loop, and we do
-          // not want to execute the code below, so we break.
-          if (abortController.signal.aborted) break;
+                // If the choice has a finish reason, then it's the final
+                // choice and we can mark it as no longer animated right now.
+                if (completion.stop !== null) {
+                  // Reset the stream id.
+                  setNodes((nodes) =>
+                    setFluxNodeStreamId(nodes, {
+                      id: correspondingNodeId,
+                      streamId: undefined,
+                    })
+                  );
 
-          // If the choice has a finish reason, then it's the final
-          // choice and we can mark it as no longer animated right now.
-          if (choice.finish_reason !== null) {
-            // Reset the stream id.
-            setNodes((nodes) =>
-              setFluxNodeStreamId(nodes, { id: correspondingNodeId, streamId: undefined })
-            );
-
-            setEdges((edges) =>
-              modifyFluxEdge(edges, {
-                source: parentNode.id,
-                target: correspondingNodeId,
-                animated: false,
-              })
-            );
-          }
-        } catch (err) {
-          console.error(err);
-        }
+                  setEdges((edges) =>
+                    modifyFluxEdge(edges, {
+                      source: parentNode.id,
+                      target: correspondingNodeId,
+                      animated: false,
+                    })
+                  );
+                }
+              },
+            }
+          )
+        );
       }
+
+      await Promise.all(promises); // Wait until all the streams resolve.
 
       // If the stream wasn't aborted or was aborted due to a cancelation.
       if (
@@ -462,7 +453,10 @@ function App() {
 
           // Reset the stream id.
           setNodes((nodes) =>
-            setFluxNodeStreamId(nodes, { id: correspondingNodeId, streamId: undefined })
+            setFluxNodeStreamId(nodes, {
+              id: correspondingNodeId,
+              streamId: undefined,
+            })
           );
 
           setEdges((edges) =>
@@ -576,7 +570,7 @@ function App() {
 
           setNodes((newerNodes) => {
             try {
-              return appendTextToFluxNodeAsGPT(newerNodes, {
+              return modifyFluxNodeTextAsGPT(newerNodes, {
                 id: selectedNodeId,
                 text: choice.text ?? UNDEFINED_RESPONSE_STRING,
                 streamId, // This will cause a throw if the streamId has changed.
@@ -848,8 +842,6 @@ function App() {
       return DEFAULT_SETTINGS;
     }
   });
-
-  const isGPT4 = settings.model.includes("gpt-4");
 
   // Auto save.
   const isSavingSettings = useDebouncedEffect(
@@ -1136,7 +1128,6 @@ function App() {
               <Prompt
                 settings={settings}
                 setSettings={setSettings}
-                isGPT4={isGPT4}
                 elevenKey={elevenKey}
                 voiceID={voiceID}
                 selectNode={selectNode}

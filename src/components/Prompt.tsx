@@ -22,7 +22,6 @@ export function Prompt({
   onType,
   selectNode,
   newConnectedToSelectedNode,
-  isGPT4,
   settings,
   setSettings,
   elevenKey,
@@ -34,7 +33,6 @@ export function Prompt({
   submitPrompt: () => Promise<void>;
   selectNode: (id: string) => void;
   newConnectedToSelectedNode: (type: FluxNodeType) => void;
-  isGPT4: boolean;
   settings: Settings;
   elevenKey: string | null;
   voiceID: string | null;
@@ -236,14 +234,15 @@ export function Prompt({
                               : undefined
                           }
                         />
-                        {data.fluxNodeType === FluxNodeType.User && (
+                        {/*// !TODO fix this! */}
+                        {/* {data.fluxNodeType === FluxNodeType.User && (
                           <Whisper
                             onConvertedText={(text: string) =>
                               onType(`${data.text}${data.text ? " " : ""}${text}`)
                             }
                             apiKey={apiKey}
                           />
-                        )}
+                        )} */}
                       </>
                     ) : (
                       <Markdown text={data.text} />
@@ -286,8 +285,8 @@ export function Prompt({
           <Text fontWeight="extrabold">
             &nbsp;
             {promptNodeType === FluxNodeType.User
-              ? displayNameFromFluxNodeType(FluxNodeType.GPT, isGPT4)
-              : displayNameFromFluxNodeType(FluxNodeType.User, isGPT4)}
+              ? displayNameFromFluxNodeType(FluxNodeType.GPT)
+              : displayNameFromFluxNodeType(FluxNodeType.User)}
             &nbsp;
           </Text>
           response
@@ -306,7 +305,7 @@ export function Prompt({
               if (MIXPANEL_TOKEN) mixpanel.track("Changed temperature inline");
             }}
             color={getFluxNodeTypeDarkColor(FluxNodeType.User)}
-            max={1.25}
+            max={1}
             min={0}
             step={0.01}
           />

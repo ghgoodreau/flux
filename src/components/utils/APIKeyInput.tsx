@@ -12,10 +12,10 @@ export function APIKeyInput({
   return (
     <LabeledPasswordInputWithLink
       width="80%"
-      label="OpenAI API Key"
+      label="Anthropic API Key"
       linkLabel="Get a key"
       placeholder="sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-      link="https://platform.openai.com/account/api-keys"
+      link="https://console.anthropic.com"
       value={apiKey ?? ""}
       setValue={setApiKey}
       {...others}
