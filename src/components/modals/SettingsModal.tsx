@@ -1,6 +1,6 @@
 import { MIXPANEL_TOKEN } from "../../main";
 import { getFluxNodeTypeDarkColor } from "../../utils/color";
-import { DEFAULT_SETTINGS, SUPPORTED_MODELS } from "../../utils/constants";
+import { DEFAULT_SETTINGS } from "../../utils/constants";
 import { Settings, FluxNodeType } from "../../utils/types";
 import { APIKeyInput } from "../utils/APIKeyInput";
 import { LabeledInput, LabeledSelect, LabeledSlider } from "../utils/LabeledInputs";
@@ -31,6 +31,7 @@ export const SettingsModal = memo(function SettingsModal({
   setApiKey,
   setElevenKey,
   setVoiceID,
+  availableModels,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -42,6 +43,7 @@ export const SettingsModal = memo(function SettingsModal({
   setApiKey: (apiKey: string) => void;
   setElevenKey: (elevenKey: string) => void;
   setVoiceID: (voiceID: string) => void;
+  availableModels: string[] | null;
 }) {
   const reset = () => {
     if (
@@ -87,7 +89,7 @@ export const SettingsModal = memo(function SettingsModal({
           <LabeledSelect
             label="Model"
             value={settings.model}
-            options={SUPPORTED_MODELS}
+            options={availableModels || [settings.model]}
             setValue={(v: string) => {
               setSettings({ ...settings, model: v });
 
