@@ -21,6 +21,7 @@ import { getPlatformModifierKeyText } from "../../utils/platform";
 import dave from "/dave.jpg";
 import t11s from "/t11s.jpg";
 import paradigm from "/paradigm.svg";
+import hunty from "/hunty.png";
 
 export function NavigationBar({
   newUserNodeLinkedToANewSystemNode,
@@ -108,10 +109,22 @@ export function NavigationBar({
             href="https://twitter.com/paradigm"
           />
         </AvatarGroup>
-        
+
         <Text whiteSpace="nowrap">
-          and <b>Audio</b> by <b>Hunty</b>
+          and <b>audio</b> by
         </Text>
+
+        <AvatarGroup ml="4px" size="sm">
+          <Avatar
+            bg="white"
+            color="transparent"
+            name="Paradigm"
+            src={hunty}
+            as={Link}
+            isExternal
+            href="https://twitter.com/ownsacomputer"
+          />
+        </AvatarGroup>
 
         <Box mx="20px" height="100%" width="1px" bg="#EEEEEE" />
 
